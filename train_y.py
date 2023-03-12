@@ -10,6 +10,7 @@ import pandas as pd
 
 from training.gnn_y import train_gnn_y
 from uci.uci_subparser import add_uci_subparser
+from uji.uji_subparser import add_uji_subparser
 from utils.utils import auto_select_gpu
 
 def main():
@@ -41,6 +42,7 @@ def main():
     parser.add_argument('--log_dir', type=str, default='y0')
     subparsers = parser.add_subparsers()
     add_uci_subparser(subparsers)
+    add_uji_subparser(subparsers)
     args = parser.parse_args()
     print(args)
 
@@ -61,6 +63,9 @@ def main():
 
     if args.domain == 'uci':
         from uci.uci_data import load_data
+        data = load_data(args)
+    if args.domain == 'uji':
+        from uji.uji_data import load_data
         data = load_data(args)
 
     log_path = './{}/test/{}/{}/'.format(args.domain,args.data,args.log_dir)
