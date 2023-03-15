@@ -4,7 +4,7 @@ def add_uji_subparser(subparsers):
     subparser = subparsers.add_parser('uji')
     # mc settings
     subparser.add_argument('--domain', type=str, default='uji')
-    subparser.add_argument('--data', type=str, default='housing')
+    subparser.add_argument('--data', type=str, default='UJIndoorLoc')
     subparser.add_argument('--train_edge', type=float, default=0.7)
     subparser.add_argument('--split_sample', type=float, default=0.)
     subparser.add_argument('--split_by', type=str, default='y') # 'y', 'random'

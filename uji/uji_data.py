@@ -4,6 +4,7 @@ import inspect
 from torch_geometric.data import Data
 from sklearn import preprocessing
 
+import utm
 import torch
 import random
 import numpy as np
@@ -50,10 +51,10 @@ def create_edge_attr(df):
     return edge_attr
 
 def get_data(df_X, df_y, node_mode, train_edge_prob, split_sample_ratio, split_by, train_y_prob, seed=0, normalize=True):
-    if len(df_y.shape)==1:
-        df_y = df_y.to_numpy()
-    elif len(df_y.shape)==2:
-        df_y = df_y[0].to_numpy()
+    # if len(df_y.shape)==1:
+    #     df_y = df_y.to_numpy()
+    # elif len(df_y.shape)==2:
+    #     df_y = df_y.to_numpy()
 
     if normalize:
         x = df_X.values
@@ -65,8 +66,8 @@ def get_data(df_X, df_y, node_mode, train_edge_prob, split_sample_ratio, split_b
     edge_attr = torch.tensor(create_edge_attr(df_X), dtype=torch.float)
     node_init = create_node(df_X, node_mode) 
     x = torch.tensor(node_init, dtype=torch.float)
-    y = torch.tensor(df_y, dtype=torch.float)
-    
+    y = torch.tensor(df_y.values, dtype=torch.float)
+    # print(y)
     #set seed to fix known/unknwon edges
     torch.manual_seed(seed)
     #keep train_edge_prob of all edges
@@ -160,6 +161,7 @@ def load_data(args):
     # df_np = np.loadtxt(uji_path+'/raw_data/{}/data/data.txt'.format(args.data))
     # df_y = pd.DataFrame(df_np[:, -1:])
     # df_X = pd.DataFrame(df_np[:, :-1])
+    pd.set_option('display.precision', 15)
     df_train = pd.read_csv(uji_path+'/raw_data/{}/data/trainingData.csv'.format(args.data))
     df_val = pd.read_csv(uji_path+'/raw_data/{}/data/validationData.csv'.format(args.data))
     df = pd.concat([df_train, df_val])
@@ -173,7 +175,13 @@ def load_data(args):
     df_X[df_X == 204] = 0.0
     df_X
 
-    df_y = df.LONGITUDE
+    df_y = df[["LONGITUDE", "LATITUDE"]]
+    df_y = df_y/100000
+    # print(df_y)
+    
+    df_y[['x', 'y']] = df_y.apply(lambda row: pd.Series(utm.from_latlon(row['LATITUDE'], row['LONGITUDE'])[:2]), axis=1)
+    df_y = df_y[['x', 'y']]
+    # print(df_y)
 
     if not hasattr(args,'split_sample'):
         args.split_sample = 0

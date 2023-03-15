@@ -29,7 +29,7 @@ def train_gnn_y(data, args, log_path, device=torch.device('cpu')):
     else:
         predict_hiddens = list(map(int, args.predict_hiddens.split('_')))
     n_row, n_col = data.df_X.shape
-    predict_model = MLPNet(n_col, 1,
+    predict_model = MLPNet(n_col, 2,
                            hidden_layer_sizes=predict_hiddens,
                            dropout=args.dropout).to(device)
 
@@ -90,10 +90,11 @@ def train_gnn_y(data, args, log_path, device=torch.device('cpu')):
         x_embd = model(x, known_edge_attr, known_edge_index)
         X = impute_model([x_embd[edge_index[0, :int(n_row * n_col)]], x_embd[edge_index[1, :int(n_row * n_col)]]])
         X = torch.reshape(X, [n_row, n_col])
-        pred = predict_model(X)[:, 0]
+        pred = predict_model(X)#[:, 0:2]
         pred_train = pred[train_y_mask]
+        # print(pred_train)
         label_train = y[train_y_mask]
-
+        # print(label_train)
         loss = F.mse_loss(pred_train, label_train)
         loss.backward()
         opt.step()
@@ -116,7 +117,8 @@ def train_gnn_y(data, args, log_path, device=torch.device('cpu')):
                 label_valid = y[valid_y_mask]
                 mse = F.mse_loss(pred_valid, label_valid)
                 valid_rmse = np.sqrt(mse.item())
-                l1 = F.l1_loss(pred_valid, label_valid)
+                # l1 = F.l1_loss(pred_valid, label_valid)
+                l1 = torch.mean(torch.linalg.norm(pred_test - label_test, 2, dim=1))
                 valid_l1 = l1.item()
                 if valid_l1 < best_valid_l1:
                     best_valid_l1 = valid_l1
@@ -136,12 +138,13 @@ def train_gnn_y(data, args, log_path, device=torch.device('cpu')):
             x_embd = model(x, train_edge_attr, train_edge_index)
             X = impute_model([x_embd[edge_index[0, :int(n_row * n_col)]], x_embd[edge_index[1, :int(n_row * n_col)]]])
             X = torch.reshape(X, [n_row, n_col])
-            pred = predict_model(X)[:, 0]
+            pred = predict_model(X)#[:, 0]
             pred_test = pred[test_y_mask]
             label_test = y[test_y_mask]
             mse = F.mse_loss(pred_test, label_test)
             test_rmse = np.sqrt(mse.item())
-            l1 = F.l1_loss(pred_test, label_test)
+            # l1 = F.l1_loss(pred_test, label_test)
+            l1 = torch.mean(torch.linalg.norm(pred_test - label_test, 2, dim=1))
             test_l1 = l1.item()
 
             Train_loss.append(train_loss)
