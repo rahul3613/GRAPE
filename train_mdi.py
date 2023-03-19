@@ -11,12 +11,13 @@ import pandas as pd
 from training.gnn_mdi import train_gnn_mdi
 from mc.mc_subparser import add_mc_subparser
 from uci.uci_subparser import add_uci_subparser
+from uji.uji_subparser import add_uji_subparser
 from utils.utils import auto_select_gpu
 
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--model_types', type=str, default='EGSAGE_EGSAGE_EGSAGE')
-    parser.add_argument('--post_hiddens', type=str, default=None,) # default to be 1 hidden of node_dim
+    parser.add_argument('--post_hiddens', type=str, default="128_64",) # default to be 1 hidden of node_dim
     parser.add_argument('--concat_states', action='store_true', default=False)
     parser.add_argument('--norm_embs', type=str, default=None,) # default to be all true
     parser.add_argument('--aggr', type=str, default='mean',)
@@ -24,13 +25,13 @@ def main():
     parser.add_argument('--edge_dim', type=int, default=64)
     parser.add_argument('--edge_mode', type=int, default=1)  # 0: use it as weight; 1: as input to mlp
     parser.add_argument('--gnn_activation', type=str, default='relu')
-    parser.add_argument('--impute_hiddens', type=str, default='64')
+    parser.add_argument('--impute_hiddens', type=str, default='128_64')
     parser.add_argument('--impute_activation', type=str, default='relu')
-    parser.add_argument('--epochs', type=int, default=20000)
+    parser.add_argument('--epochs', type=int, default=1000)
     parser.add_argument('--opt', type=str, default='adam')
     parser.add_argument('--opt_scheduler', type=str, default='none')
     parser.add_argument('--opt_restart', type=int, default=0)
-    parser.add_argument('--opt_decay_step', type=int, default=1000)
+    parser.add_argument('--opt_decay_step', type=int, default=2000)
     parser.add_argument('--opt_decay_rate', type=float, default=0.9)
     parser.add_argument('--dropout', type=float, default=0.)
     parser.add_argument('--weight_decay', type=float, default=0.)
@@ -40,7 +41,7 @@ def main():
     parser.add_argument('--loss_mode', type=int, default = 0) # 0: loss on all train edge, 1: loss only on unknown train edge
     parser.add_argument('--valid', type=float, default=0.) # valid-set ratio
     parser.add_argument('--seed', type=int, default=0)
-    parser.add_argument('--log_dir', type=str, default='0')
+    parser.add_argument('--log_dir', type=str, default='y68')
     parser.add_argument('--save_model', action='store_true', default=False)
     parser.add_argument('--save_prediction', action='store_true', default=False)
     parser.add_argument('--transfer_dir', type=str, default=None)
@@ -49,6 +50,7 @@ def main():
     subparsers = parser.add_subparsers()
     add_uci_subparser(subparsers)
     add_mc_subparser(subparsers)
+    add_uji_subparser(subparsers)
     args = parser.parse_args()
     print(args)
 
@@ -72,6 +74,9 @@ def main():
         data = load_data(args)
     elif args.domain == 'mc':
         from mc.mc_data import load_data
+        data = load_data(args)
+    elif args.domain == 'uji':
+        from uji.uji_data import load_data
         data = load_data(args)
 
     log_path = './{}/test/{}/{}/'.format(args.domain,args.data,args.log_dir)

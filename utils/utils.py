@@ -54,6 +54,13 @@ def get_known_mask(known_prob, edge_num):
     known_mask = (torch.FloatTensor(edge_num, 1).uniform_() < known_prob).view(-1)
     return known_mask
 
+def get_known_mask_new(known_prob, edge_num, shape):
+    left = torch.ones(shape[0], shape[1]-2).bool()
+    right = torch.FloatTensor(shape[0], 2).uniform_() < known_prob
+    known_mask = (torch.cat((left, right), dim=1)).view(-1)
+    # known_mask = (torch.FloatTensor(edge_num, 1).uniform_() < known_prob).view(-1)
+    return known_mask
+
 def mask_edge(edge_index,edge_attr,mask,remove_edge):
     edge_index = edge_index.clone().detach()
     edge_attr = edge_attr.clone().detach()

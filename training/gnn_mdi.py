@@ -63,6 +63,7 @@ def train_gnn_mdi(data, args, log_path, device=torch.device('cpu')):
         test_edge_index = data.higher_test_edge_index.clone().detach().to(device)
         test_edge_attr = data.higher_test_edge_attr.clone().detach().to(device)
         test_labels = data.higher_test_labels.clone().detach().to(device)
+        print(all_train_labels.size())
     else:
         all_train_edge_index = data.train_edge_index.clone().detach().to(device)
         all_train_edge_attr = data.train_edge_attr.clone().detach().to(device)

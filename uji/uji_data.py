@@ -4,13 +4,12 @@ import inspect
 from torch_geometric.data import Data
 from sklearn import preprocessing
 
-import utm
 import torch
 import random
 import numpy as np
 import pdb
 
-from utils.utils import get_known_mask, mask_edge
+from utils.utils import get_known_mask, mask_edge, get_known_mask_new
 
 def create_node(df, mode):
     if mode == 0: # onehot feature node, all 1 sample node
@@ -71,7 +70,8 @@ def get_data(df_X, df_y, node_mode, train_edge_prob, split_sample_ratio, split_b
     #set seed to fix known/unknwon edges
     torch.manual_seed(seed)
     #keep train_edge_prob of all edges
-    train_edge_mask = get_known_mask(train_edge_prob, int(edge_attr.shape[0]/2))
+    # train_edge_mask = get_known_mask(train_edge_prob, int(edge_attr.shape[0]/2))
+    train_edge_mask = get_known_mask_new(train_edge_prob, int(edge_attr.shape[0]/2), df_X.shape)
     double_train_edge_mask = torch.cat((train_edge_mask, train_edge_mask), dim=0)
 
     #mask edges based on the generated train_edge_mask
@@ -118,6 +118,7 @@ def get_data(df_X, df_y, node_mode, train_edge_prob, split_sample_ratio, split_b
         lower_train_edge_index, lower_train_edge_attr = mask_edge(train_edge_index, train_edge_attr,
                                                 double_lower_train_edge_mask, True)
         lower_train_labels = lower_train_edge_attr[:int(lower_train_edge_attr.shape[0]/2),0]
+        print(lower_train_labels)
         higher_train_edge_index, higher_train_edge_attr = mask_edge(train_edge_index, train_edge_attr,
                                                 ~double_lower_train_edge_mask, True)
         higher_train_labels = higher_train_edge_attr[:int(higher_train_edge_attr.shape[0]/2),0]
@@ -168,19 +169,16 @@ def load_data(args):
     
     building_id = 1
     floor= 1
-    df = df.loc[(df_train['BUILDINGID'] == building_id) & (df_train['FLOOR'] == floor)]
+    df = df.loc[df_train['BUILDINGID'] == building_id]
+    df = df.loc[df_train['FLOOR'] == floor]
     df_X = df.iloc[: , :520]
     # Preprocessing
     df_X += 104
     df_X[df_X == 204] = 0.0
     df_X
-
-    df_y = df[["LONGITUDE", "LATITUDE"]]
-    df_y = df_y/100000
-    # print(df_y)
     
-    df_y[['x', 'y']] = df_y.apply(lambda row: pd.Series(utm.from_latlon(row['LATITUDE'], row['LONGITUDE'])[:2]), axis=1)
-    df_y = df_y[['x', 'y']]
+    df_y = df[['x_scaled', 'y_scaled']]
+    # df_X[['x_scaled', 'y_scaled']] = df_y
     # print(df_y)
 
     if not hasattr(args,'split_sample'):
