@@ -162,16 +162,18 @@ def load_data(args):
     # df_np = np.loadtxt(uji_path+'/raw_data/{}/data/data.txt'.format(args.data))
     # df_y = pd.DataFrame(df_np[:, -1:])
     # df_X = pd.DataFrame(df_np[:, :-1])
-    pd.set_option('display.precision', 15)
+    # pd.set_option('display.precision', 15)
     df_train = pd.read_csv(uji_path+'/raw_data/{}/data/trainingData.csv'.format(args.data))
     df_val = pd.read_csv(uji_path+'/raw_data/{}/data/validationData.csv'.format(args.data))
     df = pd.concat([df_train, df_val])
     
+    print(df.shape)
     building_id = 1
     floor= 1
+    
     df = df.loc[df_train['BUILDINGID'] == building_id]
     df = df.loc[df_train['FLOOR'] == floor]
-    df_X = df.iloc[: , :520]
+    df_X = df.iloc[: , 1:521]
     # Preprocessing
     df_X += 104
     df_X[df_X == 204] = 0.0
