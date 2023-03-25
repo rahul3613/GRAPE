@@ -8,7 +8,7 @@ from models.prediction_model import MLPNet
 from utils.plot_utils import plot_curve, plot_sample
 from utils.utils import build_optimizer, objectview, get_known_mask, mask_edge
 
-def train_gnn_mdi(data, args, log_path, device=torch.device('cpu')):
+def train_gnn_mdi(data, args, log_path, df, device=torch.device('cpu')):
     model = get_gnn(data, args).to(device)
     if args.impute_hiddens == '':
         impute_hiddens = []
@@ -115,7 +115,9 @@ def train_gnn_mdi(data, args, log_path, device=torch.device('cpu')):
 
         opt.zero_grad()
         x_embd = model(x, known_edge_attr, known_edge_index)
+        # print("model", x_embd.shape)
         pred = impute_model([x_embd[train_edge_index[0]], x_embd[train_edge_index[1]]])
+        # print("pred", pred.shape)
         if hasattr(args,'ce_loss') and args.ce_loss:
             pred_train = pred[:int(train_edge_attr.shape[0] / 2)]
         else:
@@ -156,6 +158,7 @@ def train_gnn_mdi(data, args, log_path, device=torch.device('cpu')):
                 mse = F.mse_loss(pred_valid, label_valid)
                 valid_rmse = np.sqrt(mse.item())
                 l1 = F.l1_loss(pred_valid, label_valid)
+                # l1 = torch.mean(torch.linalg.norm(pred_valid - label_valid, 2, dim=1))
                 valid_l1 = l1.item()
                 if valid_l1 < best_valid_l1:
                     best_valid_l1 = valid_l1
@@ -188,6 +191,7 @@ def train_gnn_mdi(data, args, log_path, device=torch.device('cpu')):
             mse = F.mse_loss(pred_test, label_test)
             test_rmse = np.sqrt(mse.item())
             l1 = F.l1_loss(pred_test, label_test)
+            # l1 = torch.mean(torch.linalg.norm(pred_test - label_test, 2, dim=1))
             test_l1 = l1.item()
             if args.save_prediction:
                 if epoch == best_valid_rmse_epoch:
@@ -200,6 +204,10 @@ def train_gnn_mdi(data, args, log_path, device=torch.device('cpu')):
                 torch.save(impute_model, log_path + 'impute_model_{}.pt'.format(epoch))
             Train_loss.append(train_loss)
             Test_rmse.append(test_rmse)
+
+            if len(Test_l1) > 5 and Test_l1[-1] > test_l1:
+                pred_test_best = pred_test.detach().cpu().numpy()
+            
             Test_l1.append(test_l1)
             print('epoch: ', epoch)
             print('loss: ', train_loss)
@@ -223,8 +231,13 @@ def train_gnn_mdi(data, args, log_path, device=torch.device('cpu')):
     obj['curves']['test_l1'] = Test_l1
     obj['lr'] = Lr
 
+    df[data.test_edge_mask.view(-1, 522)] = torch.tensor(pred_test_best)
+    obj['filled_data'] = df
+
+    obj['train_edge_mask'] = data.train_edge_mask.view(-1, 522)
     obj['outputs']['final_pred_train'] = pred_train
     obj['outputs']['label_train'] = label_train
+    obj['outputs']['pred_test_best'] = pred_test_best
     obj['outputs']['final_pred_test'] = pred_test
     obj['outputs']['label_test'] = label_test
     pickle.dump(obj, open(log_path + 'result.pkl', "wb"))

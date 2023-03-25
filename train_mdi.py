@@ -16,10 +16,10 @@ from utils.utils import auto_select_gpu
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--model_types', type=str, default='EGSAGE_EGSAGE_EGSAGE')
+    parser.add_argument('--model_types', type=str, default='EGSAGE_EGSAGE')
     parser.add_argument('--post_hiddens', type=str, default="128_64",) # default to be 1 hidden of node_dim
     parser.add_argument('--concat_states', action='store_true', default=False)
-    parser.add_argument('--norm_embs', type=str, default=None,) # default to be all true
+    parser.add_argument('--norm_embs', type=str, default=None,) # default to be all truetrain_mdi.py
     parser.add_argument('--aggr', type=str, default='mean',)
     parser.add_argument('--node_dim', type=int, default=64)
     parser.add_argument('--edge_dim', type=int, default=64)
@@ -27,7 +27,7 @@ def main():
     parser.add_argument('--gnn_activation', type=str, default='relu')
     parser.add_argument('--impute_hiddens', type=str, default='128_64')
     parser.add_argument('--impute_activation', type=str, default='relu')
-    parser.add_argument('--epochs', type=int, default=1000)
+    parser.add_argument('--epochs', type=int, default=100)
     parser.add_argument('--opt', type=str, default='adam')
     parser.add_argument('--opt_scheduler', type=str, default='none')
     parser.add_argument('--opt_restart', type=int, default=0)
@@ -36,20 +36,20 @@ def main():
     parser.add_argument('--dropout', type=float, default=0.)
     parser.add_argument('--weight_decay', type=float, default=0.)
     parser.add_argument('--lr', type=float, default=0.001)
-    parser.add_argument('--known', type=float, default=0.7) # 1 - edge dropout rate
+    parser.add_argument('--known', type=float, default=0.8) # 1 - edge dropout rate
     parser.add_argument('--auto_known', action='store_true', default=False)
     parser.add_argument('--loss_mode', type=int, default = 0) # 0: loss on all train edge, 1: loss only on unknown train edge
-    parser.add_argument('--valid', type=float, default=0.) # valid-set ratio
+    parser.add_argument('--valid', type=float, default=0.1) # valid-set ratio
     parser.add_argument('--seed', type=int, default=0)
-    parser.add_argument('--log_dir', type=str, default='y68')
-    parser.add_argument('--save_model', action='store_true', default=False)
-    parser.add_argument('--save_prediction', action='store_true', default=False)
+    parser.add_argument('--log_dir', type=str, default='y102')
+    parser.add_argument('--save_model', action='store_true', default=True)
+    parser.add_argument('--save_prediction', action='store_true', default=True)
     parser.add_argument('--transfer_dir', type=str, default=None)
     parser.add_argument('--transfer_extra', type=str, default='')
     parser.add_argument('--mode', type=str, default='train') # debug
     subparsers = parser.add_subparsers()
-    add_uci_subparser(subparsers)
-    add_mc_subparser(subparsers)
+    # add_uci_subparser(subparsers)
+    # add_mc_subparser(subparsers)
     add_uji_subparser(subparsers)
     args = parser.parse_args()
     print(args)
@@ -76,8 +76,8 @@ def main():
         from mc.mc_data import load_data
         data = load_data(args)
     elif args.domain == 'uji':
-        from uji.uji_data import load_data
-        data = load_data(args)
+        from uji.uji_data_mdi import load_data
+        data, df = load_data(args)
 
     log_path = './{}/test/{}/{}/'.format(args.domain,args.data,args.log_dir)
     os.makedirs(log_path)
@@ -86,7 +86,7 @@ def main():
     with open(osp.join(log_path, 'cmd_input.txt'), 'a') as f:
         f.write(cmd_input)
 
-    train_gnn_mdi(data, args, log_path, device)
+    train_gnn_mdi(data, args, log_path, df, device)
 
 
 if __name__ == '__main__':

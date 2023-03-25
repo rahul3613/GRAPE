@@ -8,8 +8,9 @@ import torch
 import random
 import numpy as np
 import pdb
+import pickle
 
-from utils.utils import get_known_mask, mask_edge, get_known_mask_new
+from utils.utils import get_known_mask, mask_edge, get_known_mask_val
 
 def create_node(df, mode):
     if mode == 0: # onehot feature node, all 1 sample node
@@ -49,7 +50,7 @@ def create_edge_attr(df):
     edge_attr = edge_attr + edge_attr
     return edge_attr
 
-def get_data(df_X, df_y, node_mode, train_edge_prob, split_sample_ratio, split_by, train_y_prob, seed=0, normalize=True):
+def get_data(df_X, df_y, test_num, node_mode, train_edge_prob, split_sample_ratio, split_by, train_y_prob, seed=0, normalize=True):
     # if len(df_y.shape)==1:
     #     df_y = df_y.to_numpy()
     # elif len(df_y.shape)==2:
@@ -70,8 +71,7 @@ def get_data(df_X, df_y, node_mode, train_edge_prob, split_sample_ratio, split_b
     #set seed to fix known/unknwon edges
     torch.manual_seed(seed)
     #keep train_edge_prob of all edges
-    # train_edge_mask = get_known_mask(train_edge_prob, int(edge_attr.shape[0]/2))
-    train_edge_mask = get_known_mask_new(train_edge_prob, int(edge_attr.shape[0]/2), df_X.shape)
+    train_edge_mask = get_known_mask(train_edge_prob, int(edge_attr.shape[0]/2))
     double_train_edge_mask = torch.cat((train_edge_mask, train_edge_mask), dim=0)
 
     #mask edges based on the generated train_edge_mask
@@ -83,7 +83,7 @@ def get_data(df_X, df_y, node_mode, train_edge_prob, split_sample_ratio, split_b
                                                 ~double_train_edge_mask, True)
     test_labels = test_edge_attr[:int(test_edge_attr.shape[0]/2),0]
     #mask the y-values during training, i.e. how we split the training and test sets
-    train_y_mask = get_known_mask(train_y_prob, y.shape[0])
+    train_y_mask = get_known_mask_val(train_y_prob, y.shape[0], test_num)
     test_y_mask = ~train_y_mask
 
     data = Data(x=x, y=y, edge_index=edge_index, edge_attr=edge_attr,
@@ -157,35 +157,58 @@ def get_data(df_X, df_y, node_mode, train_edge_prob, split_sample_ratio, split_b
         
     return data
 
-def load_data(args):
+def load_data(args, y_mdi = False, log_dir=None):
     uji_path = osp.dirname(osp.abspath(inspect.getfile(inspect.currentframe())))
-    # df_np = np.loadtxt(uji_path+'/raw_data/{}/data/data.txt'.format(args.data))
-    # df_y = pd.DataFrame(df_np[:, -1:])
-    # df_X = pd.DataFrame(df_np[:, :-1])
-    # pd.set_option('display.precision', 15)
-    df_train = pd.read_csv(uji_path+'/raw_data/{}/data/trainingData.csv'.format(args.data))
-    df_val = pd.read_csv(uji_path+'/raw_data/{}/data/validationData.csv'.format(args.data))
-    df = pd.concat([df_train, df_val])
-    
-    print(df.shape)
+            
     building_id = 1
     floor= 1
     
-    df = df.loc[df['BUILDINGID'] == building_id]
-    df = df.loc[df['FLOOR'] == floor]
-    df_X = df.iloc[: , 1:521]
-    # Preprocessing
-    df_X += 104
-    df_X[df_X == 204] = 0.0
-    df_X
-    
-    df_y = df[['x_scaled', 'y_scaled']]
-    # df_X[['x_scaled', 'y_scaled']] = df_y
-    # print(df_y)
+    if y_mdi:
+
+        df_val = pd.read_csv(uji_path+'/raw_data/{}/data/validationData.csv'.format(args.data))
+        df_val = df_val.loc[df_val['BUILDINGID'] == building_id]
+        df_val = df_val.loc[df_val['FLOOR'] == floor]
+
+        df_val1 = df_val.iloc[: , 0:520]
+        df_val1[['x_scaled', 'y_scaled']] = df_val[['x_scaled', 'y_scaled']]
+        test_num = len(df_val1)
+        
+        with open(uji_path+'/test/{}/{}/feat_imp/result.pkl'.format(args.data, log_dir), 'rb') as f:
+            obj = pickle.load(f)
+
+        df_train = pd.DataFrame(obj['filled_data'], columns=df_val1.columns)
+
+        df = pd.concat([df_train, df_val1])
+
+        df_X = df.iloc[: , 0:520]
+        df_y = df[['x_scaled', 'y_scaled']]
+
+    else:
+        df_train = pd.read_csv(uji_path+'/raw_data/{}/data/trainingData.csv'.format(args.data))
+        df_val = pd.read_csv(uji_path+'/raw_data/{}/data/validationData.csv'.format(args.data))
+
+        df_train = df_train.loc[df_train['BUILDINGID'] == building_id]
+        df_train = df_train.loc[df_train['FLOOR'] == floor]
+
+        df_val = df_val.loc[df_val['BUILDINGID'] == building_id]
+        df_val = df_val.loc[df_val['FLOOR'] == floor]
+
+        with open(uji_path+'/test/{}/{}/feat_imp/result.pkl'.format(args.data, log_dir), 'rb') as f:
+            obj = pickle.load(f)
+
+        mask = obj["train_edge_mask"].view(-1, 522)[:, -1]
+        df_train = df_train[mask.numpy()]
+
+        test_num = len(df_val)
+        df = pd.concat([df_train, df_val])
+
+        df_X = df.iloc[: , 0:520]
+        df_y = df[['x_scaled', 'y_scaled']]
 
     if not hasattr(args,'split_sample'):
         args.split_sample = 0
-    data = get_data(df_X, df_y, args.node_mode, args.train_edge, args.split_sample, args.split_by, args.train_y, args.seed)
+
+    data = get_data(df_X, df_y, test_num, args.node_mode, args.train_edge, args.split_sample, args.split_by, args.train_y, args.seed)
     return data
 
 
