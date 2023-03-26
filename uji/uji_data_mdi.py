@@ -65,9 +65,7 @@ def get_data(df_X, df_y, node_mode, train_edge_prob, split_sample_ratio, split_b
     edge_attr = torch.tensor(create_edge_attr(df_X), dtype=torch.float)
     node_init = create_node(df_X, node_mode) 
     x = torch.tensor(node_init, dtype=torch.float)
-    print("x shape : ", x.shape)
     y = torch.tensor(df_y.values, dtype=torch.float)
-    # print(y)
     #set seed to fix known/unknwon edges
     torch.manual_seed(seed)
     #keep train_edge_prob of all edges
@@ -178,7 +176,10 @@ def load_data_mdi(args):
     
     df_X[['x_scaled', 'y_scaled']] = df_y
     print("df_X", df_X.shape)
+    
     if not hasattr(args,'split_sample'):
         args.split_sample = 0
+    
     data = get_data(df_X, df_y, args.node_mode, args.train_edge, args.split_sample, args.split_by, args.train_y, args.seed, normalize=False)
+    
     return data, torch.tensor(df_X.values).float()

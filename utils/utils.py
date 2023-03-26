@@ -63,7 +63,7 @@ def get_known_mask_new(known_prob, edge_num, shape):
     right = torch.FloatTensor(shape[0], 1).uniform_() < known_prob
     right = torch.cat((right, right), dim=1)
     known_mask = (torch.cat((left, right), dim=1)).view(-1)
-    print("shape :", known_mask.shape, "known : ", known_mask.sum())
+    # print("shape :", known_mask.shape, "known : ", known_mask.sum())
     return known_mask
 
 def mask_edge(edge_index,edge_attr,mask,remove_edge):
