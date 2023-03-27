@@ -26,7 +26,7 @@ log_dir = f"missing_{unlab_train}h"
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--model_types', type=str, default='EGSAGE_EGSAGE_EGSAGE')
-parser.add_argument('--post_hiddens', type=str, default="100_50",) # default to be 1 hidden of node_dim
+parser.add_argument('--post_hiddens', type=str, default="256_128_64",) # default to be 1 hidden of node_dim
 parser.add_argument('--concat_states', action='store_true', default=False)
 parser.add_argument('--norm_embs', type=str, default=None,) # default to be all truetrain_mdi.py
 parser.add_argument('--aggr', type=str, default='mean',)
@@ -34,9 +34,9 @@ parser.add_argument('--node_dim', type=int, default=50)
 parser.add_argument('--edge_dim', type=int, default=50)
 parser.add_argument('--edge_mode', type=int, default=1)  # 0: use it as weight; 1: as input to mlp
 parser.add_argument('--gnn_activation', type=str, default='relu')
-parser.add_argument('--impute_hiddens', type=str, default='100_50')
+parser.add_argument('--impute_hiddens', type=str, default='256_128_64')
 parser.add_argument('--impute_activation', type=str, default='relu')
-parser.add_argument('--epochs', type=int, default=100)
+parser.add_argument('--epochs', type=int, default=15000)
 parser.add_argument('--opt', type=str, default='adam')
 parser.add_argument('--opt_scheduler', type=str, default='none')
 parser.add_argument('--opt_restart', type=int, default=0)
@@ -108,7 +108,7 @@ parser.add_argument('--gnn_activation', type=str, default='relu')
 parser.add_argument('--impute_hiddens', type=str, default='60_30')
 parser.add_argument('--impute_activation', type=str, default='relu')
 parser.add_argument('--predict_hiddens', type=str, default='')
-parser.add_argument('--epochs', type=int, default=100)
+parser.add_argument('--epochs', type=int, default=15000)
 parser.add_argument('--opt', type=str, default='adam')
 parser.add_argument('--opt_scheduler', type=str, default='none')
 parser.add_argument('--opt_restart', type=int, default=0)

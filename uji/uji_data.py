@@ -187,7 +187,7 @@ def load_data(args, y_mdi = False, log_dir=None):
     else:
         df_train = pd.read_csv(uji_path+'/raw_data/{}/data/trainingData.csv'.format(args.data))
 
-        df_train = df_train.loc[df_train['BUILDINGID'] == building_id]
+        # df_train = df_train.loc[df_train['BUILDINGID'] == building_id]
         df_train = df_train.loc[df_train['FLOOR'] == floor]
 
         with open(uji_path+'/test/{}/{}/feat_imp/result.pkl'.format(args.data, log_dir), 'rb') as f:
