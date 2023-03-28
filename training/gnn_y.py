@@ -77,6 +77,10 @@ def train_gnn_y(data, args, log_path, device=torch.device('cpu')):
                 all_train_y_mask.shape[0],torch.sum(train_y_mask),
                 torch.sum(test_y_mask)))
 
+    obj = dict()
+    obj['args'] = args
+    obj['curves'] = dict()
+
     for epoch in range(args.epochs):
         model.train()
         impute_model.train()
@@ -156,22 +160,31 @@ def train_gnn_y(data, args, log_path, device=torch.device('cpu')):
                 print('valid rmse: ', valid_rmse)
                 print('valid l1: ', valid_l1)
             print('test rmse: ', test_rmse)
-            print('test l1: ', test_l1)
+            print('dist_error: ', test_l1)
+
+        if epoch % 10 == 0:
+            obj['curves']['train_loss'] = Train_loss
+            if args.valid > 0.:
+                obj['curves']['valid_rmse'] = Valid_rmse
+                obj['curves']['valid_l1'] = Valid_l1
+            obj['curves']['test_rmse'] = Test_rmse
+            obj['curves']['dist_error'] = Test_l1
+
+            plot_curve(obj['curves'], log_path+'curves.png',keys=None, 
+                clip=True, label_min=True, label_end=True)
 
     pred_train = pred_train.detach().cpu().numpy()
     label_train = label_train.detach().cpu().numpy()
     pred_test = pred_test.detach().cpu().numpy()
     label_test = label_test.detach().cpu().numpy()
 
-    obj = dict()
-    obj['args'] = args
-    obj['curves'] = dict()
+
     obj['curves']['train_loss'] = Train_loss
     if args.valid > 0.:
         obj['curves']['valid_rmse'] = Valid_rmse
         obj['curves']['valid_l1'] = Valid_l1
     obj['curves']['test_rmse'] = Test_rmse
-    obj['curves']['test_l1'] = Test_l1
+    obj['curves']['dist_error'] = Test_l1
     obj['lr'] = Lr
     obj['outputs'] = dict()
     obj['outputs']['pred_train'] = pred_train

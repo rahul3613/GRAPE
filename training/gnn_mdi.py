@@ -106,6 +106,7 @@ def train_gnn_mdi(data, args, log_path, df, device=torch.device('cpu')):
     obj = dict()
     obj['args'] = args
     obj['outputs'] = dict()
+    obj['curves'] = dict()
     for epoch in range(args.epochs):
         model.train()
         impute_model.train()
@@ -141,6 +142,26 @@ def train_gnn_mdi(data, args, log_path, df, device=torch.device('cpu')):
         model.eval()
         impute_model.eval()
         with torch.no_grad():
+
+            x_embd = model(x, test_input_edge_attr, test_input_edge_index)
+            pred = impute_model([x_embd[test_edge_index[0], :], x_embd[test_edge_index[1], :]])
+            if hasattr(args,'ce_loss') and args.ce_loss:
+                pred_test = class_values[pred[:int(test_edge_attr.shape[0] / 2)].max(1)[1]]
+                label_test = class_values[test_labels]
+            elif hasattr(args,'norm_label') and args.norm_label:
+                pred_test = pred[:int(test_edge_attr.shape[0] / 2),0]
+                pred_test = pred_test * max(class_values)
+                label_test = test_labels
+                label_test = label_test * max(class_values)
+            else:
+                pred_test = pred[:int(test_edge_attr.shape[0] / 2),0]
+                label_test = test_labels
+            mse = F.mse_loss(pred_test, label_test)
+            test_rmse = np.sqrt(mse.item())
+            l1 = F.l1_loss(pred_test, label_test)
+            # l1 = torch.mean(torch.linalg.norm(pred_test - label_test, 2, dim=1))
+            test_l1 = l1.item()
+
             if args.valid > 0.:
                 x_embd = model(x, train_edge_attr, train_edge_index)
                 pred = impute_model([x_embd[valid_edge_index[0], :], x_embd[valid_edge_index[1], :]])
@@ -161,6 +182,9 @@ def train_gnn_mdi(data, args, log_path, df, device=torch.device('cpu')):
                 # l1 = torch.mean(torch.linalg.norm(pred_valid - label_valid, 2, dim=1))
                 valid_l1 = l1.item()
                 if valid_l1 < best_valid_l1:
+
+                    pred_test_best = pred_test.detach().cpu().numpy()
+                    
                     best_valid_l1 = valid_l1
                     best_valid_l1_epoch = epoch
                     if args.save_model:
@@ -175,24 +199,7 @@ def train_gnn_mdi(data, args, log_path, df, device=torch.device('cpu')):
                 Valid_rmse.append(valid_rmse)
                 Valid_l1.append(valid_l1)
 
-            x_embd = model(x, test_input_edge_attr, test_input_edge_index)
-            pred = impute_model([x_embd[test_edge_index[0], :], x_embd[test_edge_index[1], :]])
-            if hasattr(args,'ce_loss') and args.ce_loss:
-                pred_test = class_values[pred[:int(test_edge_attr.shape[0] / 2)].max(1)[1]]
-                label_test = class_values[test_labels]
-            elif hasattr(args,'norm_label') and args.norm_label:
-                pred_test = pred[:int(test_edge_attr.shape[0] / 2),0]
-                pred_test = pred_test * max(class_values)
-                label_test = test_labels
-                label_test = label_test * max(class_values)
-            else:
-                pred_test = pred[:int(test_edge_attr.shape[0] / 2),0]
-                label_test = test_labels
-            mse = F.mse_loss(pred_test, label_test)
-            test_rmse = np.sqrt(mse.item())
-            l1 = F.l1_loss(pred_test, label_test)
-            # l1 = torch.mean(torch.linalg.norm(pred_test - label_test, 2, dim=1))
-            test_l1 = l1.item()
+
             if args.save_prediction:
                 if epoch == best_valid_rmse_epoch:
                     obj['outputs']['best_valid_rmse_pred_test'] = pred_test.detach().cpu().numpy()
@@ -204,9 +211,6 @@ def train_gnn_mdi(data, args, log_path, df, device=torch.device('cpu')):
                 torch.save(impute_model, log_path + 'impute_model_{}.pt'.format(epoch))
             Train_loss.append(train_loss)
             Test_rmse.append(test_rmse)
-
-            if len(Test_l1) > 5 and Test_l1[-1] > test_l1:
-                pred_test_best = pred_test.detach().cpu().numpy()
             
             Test_l1.append(test_l1)
             print('epoch: ', epoch)
@@ -217,12 +221,22 @@ def train_gnn_mdi(data, args, log_path, df, device=torch.device('cpu')):
             print('test rmse: ', test_rmse)
             print('test l1: ', test_l1)
 
+        if epoch % 10 == 0:
+            obj['curves']['train_loss'] = Train_loss
+            if args.valid > 0.:
+                obj['curves']['valid_rmse'] = Valid_rmse
+                obj['curves']['valid_l1'] = Valid_l1
+            obj['curves']['test_rmse'] = Test_rmse
+            obj['curves']['test_l1'] = Test_l1
+
+            plot_curve(obj['curves'], log_path+'curves.png',keys=None, 
+                clip=True, label_min=True, label_end=True)
+
     pred_train = pred_train.detach().cpu().numpy()
     label_train = label_train.detach().cpu().numpy()
     pred_test = pred_test.detach().cpu().numpy()
     label_test = label_test.detach().cpu().numpy()
 
-    obj['curves'] = dict()
     obj['curves']['train_loss'] = Train_loss
     if args.valid > 0.:
         obj['curves']['valid_rmse'] = Valid_rmse

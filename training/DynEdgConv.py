@@ -18,9 +18,9 @@ from utils.utils import get_known_mask_val
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-def train_dec(args, y_mdi = False, log_dir=None):
+def train_dec(args, both = False, log_path=None, result_path=None) :
     # uji_path = osp.dirname(osp.abspath(inspect.getfile(inspect.currentframe())))
-    uji_path = "../uji"
+    uji_path = "uji"
             
     building_id = 1
     floor= 1
@@ -30,13 +30,13 @@ def train_dec(args, y_mdi = False, log_dir=None):
     # df_val = df_val.loc[df_val['BUILDINGID'] == building_id]
     df_val = df_val.loc[df_val['FLOOR'] == floor]
     
-    if y_mdi:
+    if both:
 
         df_val1 = df_val.iloc[: , 0:520]
         df_val1[['x_scaled', 'y_scaled']] = df_val[['x_scaled', 'y_scaled']]
         test_num = len(df_val1)
         
-        with open(uji_path+'/test/{}/{}/feat_imp/result.pkl'.format(args.data, log_dir), 'rb') as f:
+        with open(result_path, 'rb') as f:
             obj = pickle.load(f)
 
         df_train = pd.DataFrame(obj['filled_data'], columns=df_val1.columns)
@@ -52,7 +52,7 @@ def train_dec(args, y_mdi = False, log_dir=None):
         # df_train = df_train.loc[df_train['BUILDINGID'] == building_id]
         df_train = df_train.loc[df_train['FLOOR'] == floor]
 
-        with open(uji_path+'/test/{}/{}/feat_imp/result.pkl'.format(args.data, log_dir), 'rb') as f:
+        with open(result_path, 'rb') as f:
             obj = pickle.load(f)
 
         mask = obj["train_edge_mask"].view(-1, 522)[:, -1]
@@ -70,7 +70,7 @@ def train_dec(args, y_mdi = False, log_dir=None):
     norm_scl.fit(df_X)
     # std_scl.fit(df_y)
 
-    df_x = norm_scl.transform(df_x)
+    df_x = norm_scl.transform(df_X)
     # df_y = std_scl.transform(df_y)
 
     # Define the node features
@@ -83,10 +83,10 @@ def train_dec(args, y_mdi = False, log_dir=None):
     data = Data(x=x, y=y)
     data = data.to(device)
 
-    train_mask = get_known_mask_val(_, y.shape[0], test_num)
+    train_mask = get_known_mask_val(None, y.shape[0], test_num)
 
-    data.train_mask = torch.tensor(train_mask, dtype=torch.bool)
-    data.test_mask = torch.tensor(~train_mask, dtype=torch.bool)
+    data.train_mask = train_mask
+    data.test_mask = ~train_mask
 
     class EdgeConv(MessagePassing):
         def __init__(self, in_channels, out_channels):
@@ -112,21 +112,32 @@ def train_dec(args, y_mdi = False, log_dir=None):
     class DEC(torch.nn.Module):
         def __init__(self):
             super().__init__()
-            """ GCNConv layers """
-            self.conv1 = DynamicEdgeConv(data.num_features, 512, k=6)
-            self.conv2 = DynamicEdgeConv(512, 64, k=4)
-            # self.conv3 = DynamicEdgeConv(10, 2)
-            self.fc = nn.Linear(64, 2)
+            self.conv1 = DynamicEdgeConv(data.num_features, 1024, k=5)
+            self.conv2 = DynamicEdgeConv(1024, 512, k=4)
+            self.conv3 = DynamicEdgeConv(512, 128, k=3)
+            self.fc1 = nn.Linear(128, 32)
+            self.fc2 = nn.Linear(32, 2)
+            self.dropout = nn.Dropout(p=0.5)
 
         def forward(self, data):
             x = data.x
             x = self.conv1(x)
             x = F.relu(x)
-            x = F.dropout(x, training=self.training)
+            # x = F.dropout(x, training=self.training)
+            x = self.dropout(x)
             x = self.conv2(x)
             x = F.relu(x)
-            x = F.dropout(x, training=self.training)
-            x = self.fc(x)
+            # x = F.dropout(x, training=self.training)
+            x = self.dropout(x)
+            x = self.conv3(x)
+            x = F.relu(x)
+            # x = F.dropout(x, training=self.training)
+            x = self.dropout(x)
+            x = self.fc1(x)
+            x = F.relu(x)
+            x = self.dropout(x)
+            x = self.fc2(x)
+
 
             return x
         
@@ -135,10 +146,11 @@ def train_dec(args, y_mdi = False, log_dir=None):
 
     losses = []
     val_losses = []
-    epoch = 0
 
+    obj = dict()
+    
     # while True:
-    for i in range(args.epochs):
+    for epoch in range(5000):
         model.train()
         optimizer.zero_grad()
         out = model(data)
@@ -155,13 +167,15 @@ def train_dec(args, y_mdi = False, log_dir=None):
         val_loss = torch.mean(torch.linalg.norm((pred[data.test_mask] - data.y[data.test_mask]), 2, dim=1))
         val_losses.append(val_loss.item())
         
-        epoch+=1
-        
-        if (epoch+1) % 10 == 0:
+        if (epoch+1) % 5 == 0:
             print('Epoch: ', epoch+1, 'Loss: ', loss.item(), 'Val Loss: ', val_loss.item())
+            
+            obj['train_rmse'] = losses
+            obj['test_dist_error'] = val_losses
+            plot_curve(obj, log_path+'curves.png',keys=None, clip=True, label_min=True, label_end=True)
 
-    obj = dict()
+
     obj['train_rmse'] = losses
     obj['test_dist_error'] = val_losses
 
-    plot_curve(obj, log_dir+'curves.png',keys=None, clip=True, label_min=True, label_end=True)
+    plot_curve(obj, log_path+'curves.png',keys=None, clip=True, label_min=True, label_end=True)

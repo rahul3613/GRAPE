@@ -165,7 +165,7 @@ def load_data(args, y_mdi = False, log_dir=None):
     
     df_val = pd.read_csv(uji_path+'/raw_data/{}/data/validationData.csv'.format(args.data))
     
-    df_val = df_val.loc[df_val['BUILDINGID'] == building_id]
+    # df_val = df_val.loc[df_val['BUILDINGID'] == building_id]
     df_val = df_val.loc[df_val['FLOOR'] == floor]
     
     if y_mdi:

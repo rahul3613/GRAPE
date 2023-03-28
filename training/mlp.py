@@ -25,9 +25,9 @@ from sklearn.neural_network import MLPRegressor
 from sklearn.preprocessing import StandardScaler, MinMaxScaler
 
 
-def train_mlp(args, both = True, log_dir=None):
+def train_mlp(args, both = True, log_path = None, result_path=None):
     # uji_path = osp.dirname(osp.abspath(inspect.getfile(inspect.currentframe())))
-    uji_path = "../uji"
+    uji_path = "uji"
 
     building_id = 1
     floor= 1
@@ -45,7 +45,7 @@ def train_mlp(args, both = True, log_dir=None):
         df_val_x = df_val1.iloc[: , 0:520]
         df_val_y = df_val1.iloc[: , -2:]
         
-        with open(uji_path+'/test/{}/{}/feat_imp/result.pkl'.format(args.data, log_dir), 'rb') as f:
+        with open(result_path, 'rb') as f:
             obj = pickle.load(f)
 
         df_train = pd.DataFrame(obj['filled_data'], columns=df_val1.columns)
@@ -61,7 +61,7 @@ def train_mlp(args, both = True, log_dir=None):
         # df_train = df_train.loc[df_train['BUILDINGID'] == building_id]
         df_train = df_train.loc[df_train['FLOOR'] == floor]
 
-        with open(uji_path+'/test/{}/{}/feat_imp/result.pkl'.format(args.data, log_dir), 'rb') as f:
+        with open(result_path, 'rb') as f:
             obj = pickle.load(f)
 
         mask = obj["train_edge_mask"].view(-1, 522)[:, -1]
@@ -90,15 +90,15 @@ def train_mlp(args, both = True, log_dir=None):
     y_val_tensor = torch.tensor(df_val_y.values).float()
 
     best_k = 0
-    best_error = 10000
+    best_error = 1000000
 
     obj = dict()
     obj['dist_error'] = []
 
-    h_list = [(64, 8), (256, 64), (256, 64, 8), (512, 256, 64), (512, 256, 64, 8), (1024, 512, 256), (1024, 400, 100, 8), (2048, 512, 16)]
+    h_list = [(32), (64), (64, 8), (256, 16), (256, 64, 8), (512, 64), (512, 256, 64), (1024, 512, 256), (1024, 16), (2048, 512, 16), (2048, 64)]
     for i, layer in enumerate(h_list):
         print(layer)
-        mlp = MLPRegressor(hidden_layer_sizes=layer, max_iter=5000, random_state=0)
+        mlp = MLPRegressor(hidden_layer_sizes=layer, max_iter=10000, random_state=0)
 
         # Train the MLP regressor
         mlp.fit(x_train_tensor, y_train_tensor)
@@ -110,4 +110,4 @@ def train_mlp(args, both = True, log_dir=None):
         obj['dist_error'].append(error.item())
         print(error, "mtrs")
 
-    plot_curve(obj, log_dir+'curves.png',keys=None, clip=True, label_min=True, label_end=True)
+    plot_curve(obj, log_path+'curves.png',keys=None, clip=True, label_min=True, label_end=True)

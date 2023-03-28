@@ -12,9 +12,9 @@ from sklearn.preprocessing import StandardScaler, MinMaxScaler
 import matplotlib.pyplot as plt
 
 
-def train_knn(args, both = True, log_dir=None):
+def train_knn(args, both = True, log_path=None, result_path=None):
     # uji_path = osp.dirname(osp.abspath(inspect.getfile(inspect.currentframe())))
-    uji_path = "../uji"
+    uji_path = 'uji'
 
     building_id = 1
     floor= 1
@@ -32,7 +32,7 @@ def train_knn(args, both = True, log_dir=None):
         df_val_x = df_val1.iloc[: , 0:520]
         df_val_y = df_val1.iloc[: , -2:]
         
-        with open(uji_path+'/test/{}/{}/feat_imp/result.pkl'.format(args.data, log_dir), 'rb') as f:
+        with open(result_path, 'rb') as f:
             obj = pickle.load(f)
 
         df_train = pd.DataFrame(obj['filled_data'], columns=df_val1.columns)
@@ -48,7 +48,7 @@ def train_knn(args, both = True, log_dir=None):
         # df_train = df_train.loc[df_train['BUILDINGID'] == building_id]
         df_train = df_train.loc[df_train['FLOOR'] == floor]
 
-        with open(uji_path+'/test/{}/{}/feat_imp/result.pkl'.format(args.data, log_dir), 'rb') as f:
+        with open(result_path, 'rb') as f:
             obj = pickle.load(f)
 
         mask = obj["train_edge_mask"].view(-1, 522)[:, -1]
@@ -82,7 +82,7 @@ def train_knn(args, both = True, log_dir=None):
     obj = dict()
     obj['dist_error'] = []
 
-    for K in range(10):
+    for K in range(15):
         K= K+1
         model = neighbors.KNeighborsRegressor(n_neighbors = K)
 
@@ -98,4 +98,4 @@ def train_knn(args, both = True, log_dir=None):
         
         print('Mean error in mtrs for k= ' , K , 'is:', error)
 
-    plot_curve(obj, log_dir+'curves.png',keys=None, clip=True, label_min=True, label_end=True)
+    plot_curve(obj, log_path+'curves.png',keys=None, clip=True, label_min=True, label_end=True)
