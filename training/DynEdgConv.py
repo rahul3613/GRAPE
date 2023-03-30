@@ -142,7 +142,7 @@ def train_dec(args, both = False, log_path=None, result_path=None) :
             return x
         
     model = DEC().to(device)
-    optimizer = torch.optim.Adam(model.parameters(), lr=0.001, weight_decay=5e-4)
+    optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
 
     losses = []
     val_losses = []

@@ -20,7 +20,7 @@ from utils.utils import auto_select_gpu
 
 epochs = 20000
 unlab_train = 0.2
-log_dir = f"missing_{unlab_train}_final"
+log_dir = f"missing_{unlab_train}_lr_0.005"
 
 # Finding Label using feature imputation for missing data points.
 
@@ -44,7 +44,7 @@ parser.add_argument('--opt_decay_step', type=int, default=1000)
 parser.add_argument('--opt_decay_rate', type=float, default=0.9)
 parser.add_argument('--dropout', type=float, default=0.)
 parser.add_argument('--weight_decay', type=float, default=0.)
-parser.add_argument('--lr', type=float, default=0.001)
+parser.add_argument('--lr', type=float, default=0.005)
 parser.add_argument('--known', type=float, default=1-unlab_train) # 1 - edge dropout rate
 parser.add_argument('--auto_known', action='store_true', default=False)
 parser.add_argument('--loss_mode', type=int, default = 0) # 0: loss on all train edge, 1: loss only on unknown train edge
@@ -72,22 +72,22 @@ else:
     print('Using CPU')
     device = torch.device('cpu')
 
-# seed = args.seed
-# np.random.seed(seed)
-# torch.manual_seed(seed)
+seed = args.seed
+np.random.seed(seed)
+torch.manual_seed(seed)
 
-# if args.domain == 'uji':
-#     from uji.uji_data_mdi import load_data_mdi
-#     data, df = load_data_mdi(args)
+if args.domain == 'uji':
+    from uji.uji_data_mdi import load_data_mdi
+    data, df = load_data_mdi(args)
 
-# log_path = './{}/test/{}/{}/feat_imp/'.format(args.domain,args.data,args.log_dir)
-# os.makedirs(log_path)
+log_path = './{}/test/{}/{}/feat_imp/'.format(args.domain,args.data,args.log_dir)
+os.makedirs(log_path)
 
-# cmd_input = 'python ' + ' '.join(sys.argv) + '\n'
-# with open(osp.join(log_path, 'cmd_input.txt'), 'a') as f:
-#     f.write(str(args))
+cmd_input = 'python ' + ' '.join(sys.argv) + '\n'
+with open(osp.join(log_path, 'cmd_input.txt'), 'a') as f:
+    f.write(str(args))
 
-# train_gnn_mdi(data, args, log_path, df, device)
+train_gnn_mdi(data, args, log_path, df, device)
 
 result_path = '{}/test/{}/{}/feat_imp/result.pkl'.format(args.domain,args.data,args.log_dir)
 
@@ -116,7 +116,7 @@ parser.add_argument('--opt_decay_step', type=int, default=1000)
 parser.add_argument('--opt_decay_rate', type=float, default=0.9)
 parser.add_argument('--dropout', type=float, default=0.)
 parser.add_argument('--weight_decay', type=float, default=0.)
-parser.add_argument('--lr', type=float, default=0.001)
+parser.add_argument('--lr', type=float, default=0.005)
 parser.add_argument('--known', type=float, default=0.8) # 1 - edge dropout rate
 parser.add_argument('--valid', type=float, default=0.) # valid-set ratio
 parser.add_argument('--seed', type=int, default=0)
@@ -141,30 +141,30 @@ seed = args.seed
 np.random.seed(seed)
 torch.manual_seed(seed)
 
-# if args.domain == 'uji':
-#     from uji.uji_data import load_data
-#     data = load_data(args, y_mdi = True, log_dir = log_dir)
+if args.domain == 'uji':
+    from uji.uji_data import load_data
+    data = load_data(args, y_mdi = True, log_dir = log_dir)
 
-# log_path = './{}/test/{}/{}/labeled+unlabeled/grape/'.format(args.domain,args.data,args.log_dir)
-# os.makedirs(log_path)
+log_path = './{}/test/{}/{}/labeled+unlabeled/grape/'.format(args.domain,args.data,args.log_dir)
+os.makedirs(log_path)
 
-# cmd_input = 'python ' + ' '.join(sys.argv) + '\n'
-# with open(osp.join(log_path, 'cmd_input.txt'), 'a') as f:
-#     f.write(str(args))
+cmd_input = 'python ' + ' '.join(sys.argv) + '\n'
+with open(osp.join(log_path, 'cmd_input.txt'), 'a') as f:
+    f.write(str(args))
 
-# train_gnn_y(data, args, log_path, device)
-
-
-# log_path = '{}/test/{}/{}/labeled+unlabeled/kNN/'.format(args.domain,args.data,args.log_dir)
-# os.makedirs(log_path)
-# train_knn(args, both = True, log_path=log_path, result_path = result_path)
-
-# log_path = '{}/test/{}/{}/labeled+unlabeled/MLP/'.format(args.domain,args.data,args.log_dir)
-# os.makedirs(log_path)
-# train_mlp(args, both = True, log_path=log_path, result_path = result_path)
+train_gnn_y(data, args, log_path, device)
 
 
-log_path = './{}/test/{}/{}/labeled+unlabeled/DEC1/'.format(args.domain,args.data,args.log_dir)
+log_path = '{}/test/{}/{}/labeled+unlabeled/kNN/'.format(args.domain,args.data,args.log_dir)
+os.makedirs(log_path)
+train_knn(args, both = True, log_path=log_path, result_path = result_path)
+
+log_path = '{}/test/{}/{}/labeled+unlabeled/MLP/'.format(args.domain,args.data,args.log_dir)
+os.makedirs(log_path)
+train_mlp(args, both = True, log_path=log_path, result_path = result_path)
+
+
+log_path = './{}/test/{}/{}/labeled+unlabeled/DEC/'.format(args.domain,args.data,args.log_dir)
 os.makedirs(log_path)
 train_dec(args, both = True, log_path=log_path, result_path = result_path)
 
