@@ -34,7 +34,7 @@ def train_mlp(args, both = True, log_path = None, result_path=None):
     
     df_val = pd.read_csv(uji_path+'/raw_data/{}/data/validationData.csv'.format(args.data))
     
-    # df_val = df_val.loc[df_val['BUILDINGID'] == building_id]
+    df_val = df_val.loc[df_val['BUILDINGID'] == building_id]
     df_val = df_val.loc[df_val['FLOOR'] == floor]
     
     if both:
@@ -58,7 +58,7 @@ def train_mlp(args, both = True, log_path = None, result_path=None):
         df_val_y = df_val.iloc[: , -2:]
         df_train = pd.read_csv(uji_path+'/raw_data/{}/data/trainingData.csv'.format(args.data))
 
-        # df_train = df_train.loc[df_train['BUILDINGID'] == building_id]
+        df_train = df_train.loc[df_train['BUILDINGID'] == building_id]
         df_train = df_train.loc[df_train['FLOOR'] == floor]
 
         with open(result_path, 'rb') as f:
@@ -95,7 +95,7 @@ def train_mlp(args, both = True, log_path = None, result_path=None):
     obj = dict()
     obj['dist_error'] = []
 
-    h_list = [(32), (64), (64, 8), (256, 16), (256, 64, 8), (512, 64), (512, 256, 64), (1024, 512, 256), (1024, 16), (2048, 512, 16), (2048, 64)]
+    h_list = [(32), (64), (64, 8), (256, 16), (256, 64, 8), (512, 64), (512, 256, 64), (1024, 512, 256), (1024, 16), (2048, 512, 16), (2048, 64), (4096, 512, 32), (4096, 64)]
     for i, layer in enumerate(h_list):
         print(layer)
         mlp = MLPRegressor(hidden_layer_sizes=layer, max_iter=10000, random_state=0)

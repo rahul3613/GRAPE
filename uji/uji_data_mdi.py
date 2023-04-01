@@ -168,7 +168,7 @@ def load_data_mdi(args):
     building_id = 1
     floor= 1
     
-    # df = df.loc[df['BUILDINGID'] == building_id]
+    df = df.loc[df['BUILDINGID'] == building_id]
     df = df.loc[df['FLOOR'] == floor]
 
     df_X = df.iloc[: , 0:520]

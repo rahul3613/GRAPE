@@ -21,7 +21,7 @@ def train_knn(args, both = True, log_path=None, result_path=None):
     
     df_val = pd.read_csv(uji_path+'/raw_data/{}/data/validationData.csv'.format(args.data))
     
-    # df_val = df_val.loc[df_val['BUILDINGID'] == building_id]
+    df_val = df_val.loc[df_val['BUILDINGID'] == building_id]
     df_val = df_val.loc[df_val['FLOOR'] == floor]
     
     if both:
@@ -45,7 +45,7 @@ def train_knn(args, both = True, log_path=None, result_path=None):
         df_val_y = df_val.iloc[: , -2:]
         df_train = pd.read_csv(uji_path+'/raw_data/{}/data/trainingData.csv'.format(args.data))
 
-        # df_train = df_train.loc[df_train['BUILDINGID'] == building_id]
+        df_train = df_train.loc[df_train['BUILDINGID'] == building_id]
         df_train = df_train.loc[df_train['FLOOR'] == floor]
 
         with open(result_path, 'rb') as f:
@@ -82,7 +82,7 @@ def train_knn(args, both = True, log_path=None, result_path=None):
     obj = dict()
     obj['dist_error'] = []
 
-    for K in range(15):
+    for K in range(20):
         K= K+1
         model = neighbors.KNeighborsRegressor(n_neighbors = K)
 

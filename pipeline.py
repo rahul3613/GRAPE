@@ -20,7 +20,7 @@ from utils.utils import auto_select_gpu
 
 epochs = 20000
 unlab_train = 0.2
-log_dir = f"missing_{unlab_train}_lr_0.005"
+log_dir = f"missing_{unlab_train}_lr_0.002"
 
 # Finding Label using feature imputation for missing data points.
 
@@ -44,7 +44,7 @@ parser.add_argument('--opt_decay_step', type=int, default=1000)
 parser.add_argument('--opt_decay_rate', type=float, default=0.9)
 parser.add_argument('--dropout', type=float, default=0.)
 parser.add_argument('--weight_decay', type=float, default=0.)
-parser.add_argument('--lr', type=float, default=0.005)
+parser.add_argument('--lr', type=float, default=0.002)
 parser.add_argument('--known', type=float, default=1-unlab_train) # 1 - edge dropout rate
 parser.add_argument('--auto_known', action='store_true', default=False)
 parser.add_argument('--loss_mode', type=int, default = 0) # 0: loss on all train edge, 1: loss only on unknown train edge
@@ -116,7 +116,7 @@ parser.add_argument('--opt_decay_step', type=int, default=1000)
 parser.add_argument('--opt_decay_rate', type=float, default=0.9)
 parser.add_argument('--dropout', type=float, default=0.)
 parser.add_argument('--weight_decay', type=float, default=0.)
-parser.add_argument('--lr', type=float, default=0.005)
+parser.add_argument('--lr', type=float, default=0.002)
 parser.add_argument('--known', type=float, default=0.8) # 1 - edge dropout rate
 parser.add_argument('--valid', type=float, default=0.) # valid-set ratio
 parser.add_argument('--seed', type=int, default=0)

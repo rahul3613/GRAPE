@@ -27,7 +27,7 @@ def train_dec(args, both = False, log_path=None, result_path=None) :
     
     df_val = pd.read_csv(uji_path+'/raw_data/{}/data/validationData.csv'.format(args.data))
     
-    # df_val = df_val.loc[df_val['BUILDINGID'] == building_id]
+    df_val = df_val.loc[df_val['BUILDINGID'] == building_id]
     df_val = df_val.loc[df_val['FLOOR'] == floor]
     
     if both:
@@ -49,7 +49,7 @@ def train_dec(args, both = False, log_path=None, result_path=None) :
     else:
         df_train = pd.read_csv(uji_path+'/raw_data/{}/data/trainingData.csv'.format(args.data))
 
-        # df_train = df_train.loc[df_train['BUILDINGID'] == building_id]
+        df_train = df_train.loc[df_train['BUILDINGID'] == building_id]
         df_train = df_train.loc[df_train['FLOOR'] == floor]
 
         with open(result_path, 'rb') as f:
@@ -112,37 +112,26 @@ def train_dec(args, both = False, log_path=None, result_path=None) :
     class DEC(torch.nn.Module):
         def __init__(self):
             super().__init__()
-            self.conv1 = DynamicEdgeConv(data.num_features, 1024, k=5)
-            self.conv2 = DynamicEdgeConv(1024, 512, k=4)
-            self.conv3 = DynamicEdgeConv(512, 128, k=3)
-            self.fc1 = nn.Linear(128, 32)
-            self.fc2 = nn.Linear(32, 2)
+            self.conv1 = DynamicEdgeConv(data.num_features, 512, k=5)
+            self.conv2 = DynamicEdgeConv(512, 64, k=4)
+            self.fc1 = nn.Linear(64, 2)
             self.dropout = nn.Dropout(p=0.5)
 
         def forward(self, data):
             x = data.x
             x = self.conv1(x)
             x = F.relu(x)
-            # x = F.dropout(x, training=self.training)
             x = self.dropout(x)
             x = self.conv2(x)
             x = F.relu(x)
-            # x = F.dropout(x, training=self.training)
-            x = self.dropout(x)
-            x = self.conv3(x)
-            x = F.relu(x)
-            # x = F.dropout(x, training=self.training)
             x = self.dropout(x)
             x = self.fc1(x)
-            x = F.relu(x)
-            x = self.dropout(x)
-            x = self.fc2(x)
 
 
             return x
         
     model = DEC().to(device)
-    optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
+    optimizer = torch.optim.Adam(model.parameters(), lr=0.005)
 
     losses = []
     val_losses = []
