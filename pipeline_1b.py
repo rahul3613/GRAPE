@@ -19,7 +19,7 @@ from uji.uji_subparser import add_uji_subparser
 from utils.utils import auto_select_gpu
 
 epochs = 20000
-unlab_train = 0.2
+unlab_train = 0.6
 lr = 0.0015
 log_dir = f"missing_{unlab_train}_lr_{lr}_b1f1_1"
 

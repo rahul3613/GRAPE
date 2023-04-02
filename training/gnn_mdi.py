@@ -2,6 +2,7 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 import pickle
+import pandas as pd
 
 from models.gnn_model import get_gnn
 from models.prediction_model import MLPNet
@@ -247,6 +248,11 @@ def train_gnn_mdi(data, args, log_path, df, device=torch.device('cpu')):
 
     df[data.test_edge_mask.view(-1, 522)] = torch.tensor(pred_test_best)
     obj['filled_data'] = df
+
+    df[data.test_edge_mask.view(-1, 522)] = np.nan
+    df = pd.DataFrame(df.numpy())
+    df.fillna(df.mean(), inplace=True)
+    obj['mean_filled_data'] = torch.tensor(df.to_numpy())
 
     obj['train_edge_mask'] = data.train_edge_mask.view(-1, 522)
     obj['outputs']['final_pred_train'] = pred_train

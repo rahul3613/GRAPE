@@ -185,16 +185,19 @@ def load_data(args, y_mdi = False, log_dir=None):
         df_y = df[['x_scaled', 'y_scaled']]
 
     else:
-        df_train = pd.read_csv(uji_path+'/raw_data/{}/data/trainingData.csv'.format(args.data))
+        df_val1 = df_val.iloc[: , 0:520]
+        df_val1[['x_scaled', 'y_scaled']] = df_val[['x_scaled', 'y_scaled']]
+        # df_train = pd.read_csv(uji_path+'/raw_data/{}/data/trainingData.csv'.format(args.data))
 
-        df_train = df_train.loc[df_train['BUILDINGID'] == building_id]
-        df_train = df_train.loc[df_train['FLOOR'] == floor]
+        # df_train = df_train.loc[df_train['BUILDINGID'] == building_id]
+        # df_train = df_train.loc[df_train['FLOOR'] == floor]
 
         with open(uji_path+'/test/{}/{}/feat_imp/result.pkl'.format(args.data, log_dir), 'rb') as f:
             obj = pickle.load(f)
 
-        mask = obj["train_edge_mask"].view(-1, 522)[:, -1]
-        df_train = df_train[mask.numpy()]
+        # mask = obj["train_edge_mask"].view(-1, 522)[:, -1]
+        # df_train = df_train[mask.numpy()]
+        df_train = pd.DataFrame(obj['mean_filled_data'], columns=df_val1.columns)
 
         test_num = len(df_val)
         df = pd.concat([df_train, df_val])

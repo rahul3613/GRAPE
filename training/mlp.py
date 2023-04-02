@@ -56,16 +56,18 @@ def train_mlp(args, both = True, log_path = None, result_path=None):
     else:
         df_val_x = df_val.iloc[: , 0:520]
         df_val_y = df_val.iloc[: , -2:]
-        df_train = pd.read_csv(uji_path+'/raw_data/{}/data/trainingData.csv'.format(args.data))
+        
+        # df_train = pd.read_csv(uji_path+'/raw_data/{}/data/trainingData.csv'.format(args.data))
 
-        df_train = df_train.loc[df_train['BUILDINGID'] == building_id]
-        df_train = df_train.loc[df_train['FLOOR'] == floor]
+        # df_train = df_train.loc[df_train['BUILDINGID'] == building_id]
+        # df_train = df_train.loc[df_train['FLOOR'] == floor]
 
         with open(result_path, 'rb') as f:
             obj = pickle.load(f)
 
-        mask = obj["train_edge_mask"].view(-1, 522)[:, -1]
-        df_train = df_train[mask.numpy()]
+        # mask = obj["train_edge_mask"].view(-1, 522)[:, -1]
+        # df_train = df_train[mask.numpy()]
+        df_train = pd.DataFrame(obj['mean_filled_data']) #, columns=df_val1.columns)
 
         df_train_x = df_train.iloc[: , 0:520]
         df_train_y = df_train.iloc[: , -2:]
