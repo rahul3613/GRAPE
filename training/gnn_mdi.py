@@ -285,3 +285,108 @@ def train_gnn_mdi(data, args, log_path, df, device=torch.device('cpu')):
     if args.valid > 0.:
         print("best valid rmse is {:.3g} at epoch {}".format(best_valid_rmse,best_valid_rmse_epoch))
         print("best valid l1 is {:.3g} at epoch {}".format(best_valid_l1,best_valid_l1_epoch))
+
+
+def test_gnn_mdi(data, args, log_path, df, device=torch.device('cpu')):
+    model = get_gnn(data, args).to(device)
+    if args.impute_hiddens == '':
+        impute_hiddens = []
+    else:
+        impute_hiddens = list(map(int,args.impute_hiddens.split('_')))
+    if args.concat_states:
+        input_dim = args.node_dim * len(model.convs) * 2
+    else:
+        input_dim = args.node_dim * 2
+    if hasattr(args,'ce_loss') and args.ce_loss:
+        output_dim = len(data.class_values)
+    else:
+        output_dim = 1
+    impute_model = MLPNet(input_dim, output_dim,
+                            hidden_layer_sizes=impute_hiddens,
+                            hidden_activation=args.impute_activation,
+                            dropout=args.dropout).to(device)
+    if args.transfer_dir: # this ensures the valid mask is consistant
+        load_path = './{}/test/{}/{}/'.format(args.domain,args.data,args.transfer_dir)
+        print("loading fron {} with {}".format(load_path,args.transfer_extra))
+        model = torch.load(load_path+'model'+args.transfer_extra+'.pt',map_location=device)
+        impute_model = torch.load(load_path+'impute_model'+args.transfer_extra+'.pt',map_location=device)
+
+    # train
+    Train_loss = []
+    Test_rmse = []
+    Test_l1 = []
+    Lr = []
+
+    obj = dict()
+    obj['args'] = args
+    obj['outputs'] = dict()
+    obj['curves'] = dict()
+
+    x = data.x.clone().detach().to(device)
+    if hasattr(args,'split_sample') and args.split_sample > 0.:
+        if args.split_train:
+            all_train_edge_index = data.lower_train_edge_index.clone().detach().to(device)
+            all_train_edge_attr = data.lower_train_edge_attr.clone().detach().to(device)
+            all_train_labels = data.lower_train_labels.clone().detach().to(device)
+        else:
+            all_train_edge_index = data.train_edge_index.clone().detach().to(device)
+            all_train_edge_attr = data.train_edge_attr.clone().detach().to(device)
+            all_train_labels = data.train_labels.clone().detach().to(device)
+        if args.split_test:
+            test_input_edge_index = data.higher_train_edge_index.clone().detach().to(device)
+            test_input_edge_attr = data.higher_train_edge_attr.clone().detach().to(device)
+        else:
+            test_input_edge_index = data.train_edge_index.clone().detach().to(device)
+            test_input_edge_attr = data.train_edge_attr.clone().detach().to(device)
+        test_edge_index = data.higher_test_edge_index.clone().detach().to(device)
+        test_edge_attr = data.higher_test_edge_attr.clone().detach().to(device)
+        test_labels = data.higher_test_labels.clone().detach().to(device)
+        print(all_train_labels.size())
+    else:
+        all_train_edge_index = data.train_edge_index.clone().detach().to(device)
+        all_train_edge_attr = data.train_edge_attr.clone().detach().to(device)
+        all_train_labels = data.train_labels.clone().detach().to(device)
+        test_input_edge_index = all_train_edge_index
+        test_input_edge_attr = all_train_edge_attr
+        test_edge_index = data.test_edge_index.clone().detach().to(device)
+        test_edge_attr = data.test_edge_attr.clone().detach().to(device)
+        test_labels = data.test_labels.clone().detach().to(device)
+    if hasattr(data,'class_values'):
+        class_values = data.class_values.clone().detach().to(device)
+    if args.valid > 0.:
+        valid_mask = get_known_mask(args.valid, int(all_train_edge_attr.shape[0] / 2)).to(device)
+        print("valid mask sum: ",torch.sum(valid_mask))
+        train_labels = all_train_labels[~valid_mask]
+        valid_labels = all_train_labels[valid_mask]
+        double_valid_mask = torch.cat((valid_mask, valid_mask), dim=0)
+        valid_edge_index, valid_edge_attr = mask_edge(all_train_edge_index, all_train_edge_attr, double_valid_mask, True)
+        train_edge_index, train_edge_attr = mask_edge(all_train_edge_index, all_train_edge_attr, ~double_valid_mask, True)
+        print("train edge num is {}, valid edge num is {}, test edge num is input {} output {}"\
+                .format(
+                train_edge_attr.shape[0], valid_edge_attr.shape[0],
+                test_input_edge_attr.shape[0], test_edge_attr.shape[0]))
+        Valid_rmse = []
+        Valid_l1 = []
+        best_valid_rmse = np.inf
+        best_valid_rmse_epoch = 0
+        best_valid_l1 = np.inf
+        best_valid_l1_epoch = 0
+    else:
+        train_edge_index, train_edge_attr, train_labels =\
+             all_train_edge_index, all_train_edge_attr, all_train_labels
+        print("train edge num is {}, test edge num is input {}, output {}"\
+                .format(
+                train_edge_attr.shape[0],
+                test_input_edge_attr.shape[0], test_edge_attr.shape[0]))
+    if args.auto_known:
+        args.known = float(all_train_labels.shape[0])/float(all_train_labels.shape[0]+test_labels.shape[0])
+        print("auto calculating known is {}/{} = {:.3g}".format(all_train_labels.shape[0],all_train_labels.shape[0]+test_labels.shape[0],args.known))
+    model = torch.load("/home/rahul/data/GRAPE/uji/test/UJIndoorLoc/missing_0.2_lr_0.0015_b1f1/feat_imp/model_best_valid_rmse.pt")
+    impute_model = torch.load("/home/rahul/data/GRAPE/uji/test/UJIndoorLoc/missing_0.2_lr_0.0015_b1f1/feat_imp/impute_model_best_valid_rmse.pt")
+
+    x_embd = model(x, test_input_edge_attr, test_input_edge_index)
+    pred = impute_model([x_embd[test_edge_index[0], :], x_embd[test_edge_index[1], :]])
+
+    pred_test = pred[:int(test_edge_attr.shape[0] / 2),0]
+
+    obj['outputs']['best_valid_rmse_pred_test'] = pred_test.detach().cpu().numpy()
